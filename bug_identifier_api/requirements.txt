@@ -5,3 +5,5 @@ requests
 streamlit
 nest_asyncio
 gradio
+aiohttp
+python-dotenv
