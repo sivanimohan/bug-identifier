@@ -144,40 +144,4 @@ if __name__ == "__main__":
     import uvicorn
     import nest_asyncio
     nest_asyncio.apply()
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
-
-
-import sys
-if "streamlit" in sys.argv[0]:
-    import streamlit as st
-    import requests
-
-    st.set_page_config(page_title="🐞 AI-Powered Bug Identifier")
-    st.title("🐞 AI-Powered Bug Identifier")
-
-    language = st.selectbox("Language", ["python", "java", "c"])
-    mode = st.radio("Tone", ["developer-friendly", "casual"])
-    code = st.text_area("Paste your code snippet (≤30 lines)", height=200, key="code_input")
-
-    if st.button("Find Bug"):
-        if not code.strip():
-            st.warning("Please submit some code to analyze.")
-        else:
-            try:
-                resp = requests.post(
-                    "https://expert-carnival-6xr4rwgqp9jh5x4w-8501.app.github.dev/find-bug",
-                    params={"mode": mode},
-                    json={"language": language, "code": code},
-                    timeout=20
-                )
-                if resp.status_code == 200:
-                    bug = resp.json()
-                    st.json(bug)
-                else:
-                    try:
-                        error = resp.json().get("detail", resp.text)
-                    except Exception:
-                        error = resp.text
-                    st.error(f"Error: {error}")
-            except Exception as e:
-                st.error(f"Request failed: {str(e)}")
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
