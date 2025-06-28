@@ -1,6 +1,0 @@
-fastapi
-uvicorn
-pycparser
-requests
-streamlit
-nest_asyncio
