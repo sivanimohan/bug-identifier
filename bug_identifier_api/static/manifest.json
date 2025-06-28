@@ -1,0 +1,8 @@
+{
+  "name": "AI Bug Identifier",
+  "short_name": "BugID",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "description": "Find bugs in your code with AI!"
+}

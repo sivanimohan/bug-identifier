@@ -143,7 +143,7 @@ async def find_bug(
 async def get_sample_cases():
     return sample_cases
 
-# ------------------ Gradio UI ------------------
+
 
 def gradio_find_bug(language, code, mode):
     if not code or not code.strip():
