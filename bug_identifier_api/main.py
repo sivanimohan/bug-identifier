@@ -1,40 +1,15 @@
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, constr
-from typing import Optional, List
+import streamlit as st
 import json
 import subprocess
 from pycparser import c_parser
-from llm_call import call_gemini_llm
-from test_cases import SampleCase, sample_cases
+from typing import Optional
+from llm_call import call_gemini_llm  
+from test_cases import SampleCase, sample_cases  
 
-import gradio as gr
+st.title("AI Bug Identifier")
+st.write("Paste your code, choose a language and mode, and find bugs instantly!")
 
-app = FastAPI()
-
-from fastapi.responses import FileResponse
-
-@app.get("/manifest.json")
-def manifest():
-    return FileResponse("static/manifest.json")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-class CodeSnippet(BaseModel):
-    language: constr(strip_whitespace=True, min_length=1)
-    code: constr(strip_whitespace=True, min_length=1, max_length=2000)
-
-class BugReport(BaseModel):
-    language: str
-    bug_type: Optional[str] = None
-    description: str
-    suggestion: Optional[str] = None
-
-def check_java_syntax(code: str) -> tuple[bool, str]:
+def check_java_syntax(code: str):
     try:
         import tempfile, os
         temp_dir = tempfile.mkdtemp()
@@ -55,7 +30,7 @@ def check_java_syntax(code: str) -> tuple[bool, str]:
     except Exception as e:
         return False, f"Java Syntax check failed: {e}"
 
-def syntax_check(language: str, code: str) -> tuple[bool, str]:
+def syntax_check(language: str, code: str):
     language = language.lower()
     if language == "python":
         try:
@@ -75,7 +50,7 @@ def syntax_check(language: str, code: str) -> tuple[bool, str]:
     else:
         return False, f"Language '{language}' is not supported for syntax check."
 
-async def analyze_code_with_gemini(language: str, code: str, mode: str = "developer-friendly") -> str:
+async def analyze_code_with_gemini(language: str, code: str, mode: str = "developer-friendly"):
     if not code.strip():
         return json.dumps({
             "bug_type": None,
@@ -107,7 +82,7 @@ async def analyze_code_with_gemini(language: str, code: str, mode: str = "develo
     "bug_type": null
     "description": "no error"
     "suggestion": null
-
+    IMPORTANT: Respond ONLY with the JSON object and nothing else.
     {tone_instruction}
 
     Code:
@@ -116,40 +91,7 @@ async def analyze_code_with_gemini(language: str, code: str, mode: str = "develo
     gemini_response = await call_gemini_llm(prompt)
     return gemini_response
 
-@app.post("/find-bug", response_model=BugReport)
-async def find_bug(
-    snippet: CodeSnippet,
-    mode: str = Query("developer-friendly", enum=["developer-friendly", "casual"])
-):
-    if not snippet.code or not snippet.code.strip():
-        raise HTTPException(status_code=400, detail="No code provided. Please submit some code to analyze.")
-    if len(snippet.code.splitlines()) > 30:
-        raise HTTPException(status_code=400, detail="Code must be 30 lines or fewer.")
-    is_valid, syntax_msg = syntax_check(snippet.language, snippet.code)
-    if not is_valid:
-        return BugReport(
-            language=snippet.language,
-            bug_type="syntax",
-            description=syntax_msg,
-            suggestion="Please fix the syntax error before further analysis."
-        )
-    try:
-        gemini_result = await analyze_code_with_gemini(snippet.language, snippet.code, mode)
-        try:
-            bug_data = json.loads(gemini_result)
-        except Exception:
-            raise HTTPException(status_code=500, detail="Gemini response was not valid JSON.")
-        return BugReport(language=snippet.language, **bug_data)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error analyzing code: {str(e)}")
-
-@app.get("/sample-cases", response_model=List[SampleCase])
-async def get_sample_cases():
-    return sample_cases
-
-
-
-def gradio_find_bug(language, code, mode):
+def run_analysis(language, code, mode):
     if not code or not code.strip():
         return "No code provided.", "", ""
     if len(code.splitlines()) > 30:
@@ -159,7 +101,8 @@ def gradio_find_bug(language, code, mode):
         return f"Syntax Error: {syntax_msg}", "", "Please fix the syntax error before further analysis."
     try:
         import asyncio
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         gemini_result = loop.run_until_complete(analyze_code_with_gemini(language, code, mode))
         bug_data = json.loads(gemini_result)
         bug_type = bug_data.get("bug_type", "")
@@ -169,20 +112,23 @@ def gradio_find_bug(language, code, mode):
     except Exception as e:
         return "Error", f"Error analyzing code: {str(e)}", ""
 
-gradio_ui = gr.Interface(
-    fn=gradio_find_bug,
-    inputs=[
-        gr.Textbox(label="Language", value="python"),
-        gr.Code(label="Code", language="python"),
-        gr.Radio(["developer-friendly", "casual"], label="Mode", value="developer-friendly"),
-    ],
-    outputs=[
-        gr.Textbox(label="Bug Type"),
-        gr.Textbox(label="Description"),
-        gr.Textbox(label="Suggestion"),
-    ],
-    title="AI Bug Identifier",
-    description="Paste your code, choose a language and mode, and find bugs instantly!"
-)
 
-app = gr.mount_gradio_app(app, gradio_ui, path="/")
+LANGUAGES = ["python", "java", "c"]
+language = st.selectbox("Language", LANGUAGES, index=0)
+code = st.text_area("Code", height=300)
+mode = st.radio("Mode", ["developer-friendly", "casual"], index=0)
+
+if st.button("Find Bug"):
+    bug_type, desc, sugg = run_analysis(language, code, mode)
+    st.write(f"**Bug Type:** {bug_type}")
+    st.write(f"**Description:** {desc}")
+    st.write(f"**Suggestion:** {sugg}")
+
+with st.expander("Sample Cases"):
+    if hasattr(sample_cases, "__iter__"):
+        for case in sample_cases:
+            st.code(case.code, language=case.language)
+            st.write(f"**Description:** {case.description}")
+            st.write(f"**Suggestion:** {case.suggestion}")
+    else:
+        st.info("No sample cases available.")

@@ -1,6 +1,4 @@
-from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List
 
 class SampleCase(BaseModel):
     language: str
@@ -32,18 +30,17 @@ sample_cases = [
         suggestion="Use '==' for comparison in conditionals."
     ),
     SampleCase(
-        language="javascript",
-        code="let arr = [1, 2, 3];\nfor(let i = 0; i <= arr.length; i++) {\n  console.log(arr[i]);\n}",
-        bug_type="off-by-one",
-        description="Loop runs one step too far, logging 'undefined' at the end.",
-        suggestion="Use i < arr.length as the loop condition."
+        language="python",
+        code="if not arr:\n    process(arr)",
+        bug_type="edge-case",
+        description="If arr is an empty list, process(arr) is called, but the intent may have been to skip processing empty lists.",
+        suggestion="Check if arr is not empty before calling process(arr)."
     ),
     SampleCase(
-        language="c",
-        code="int main() { int x = 5; if(x = 10) { return 1; } return 0; }",
+        language="python",
+        code="def is_even(n):\n    return n % 2 == 1",
         bug_type="logic",
-        description="Assignment (=) used in 'if' instead of comparison (==).",
-        suggestion="Use '==' for comparison in the if statement."
-    )
+        description="Returns True for odd numbers instead of even numbers due to incorrect modulus check.",
+        suggestion="Use 'n % 2 == 0' to check for even numbers."
+    ),
 ]
-
