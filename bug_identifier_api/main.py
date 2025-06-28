@@ -1,13 +1,24 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, constr
 from typing import Optional, List
 import json
 import subprocess
 from pycparser import c_parser
-from llm_call import call_gemini_llm 
+from llm_call import call_gemini_llm
 from test_cases import SampleCase, sample_cases
 
+import gradio as gr
+
 app = FastAPI()
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class CodeSnippet(BaseModel):
     language: constr(strip_whitespace=True, min_length=1)
@@ -16,7 +27,7 @@ class CodeSnippet(BaseModel):
 class BugReport(BaseModel):
     language: str
     bug_type: Optional[str] = None
-    description: str 
+    description: str
     suggestion: Optional[str] = None
 
 def check_java_syntax(code: str) -> tuple[bool, str]:
@@ -127,21 +138,47 @@ async def find_bug(
         return BugReport(language=snippet.language, **bug_data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing code: {str(e)}")
-    
+
 @app.get("/sample-cases", response_model=List[SampleCase])
 async def get_sample_cases():
     return sample_cases
 
-from fastapi.middleware.cors import CORSMiddleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+# ------------------ Gradio UI ------------------
+
+def gradio_find_bug(language, code, mode):
+    if not code or not code.strip():
+        return "No code provided.", "", ""
+    if len(code.splitlines()) > 30:
+        return "Code must be 30 lines or fewer.", "", ""
+    is_valid, syntax_msg = syntax_check(language, code)
+    if not is_valid:
+        return f"Syntax Error: {syntax_msg}", "", "Please fix the syntax error before further analysis."
+    try:
+        import asyncio
+        loop = asyncio.get_event_loop()
+        gemini_result = loop.run_until_complete(analyze_code_with_gemini(language, code, mode))
+        bug_data = json.loads(gemini_result)
+        bug_type = bug_data.get("bug_type", "")
+        desc = bug_data.get("description", "")
+        sugg = bug_data.get("suggestion", "")
+        return bug_type, desc, sugg
+    except Exception as e:
+        return "Error", f"Error analyzing code: {str(e)}", ""
+
+gradio_ui = gr.Interface(
+    fn=gradio_find_bug,
+    inputs=[
+        gr.Textbox(label="Language", value="python"),
+        gr.Code(label="Code", language="python"),
+        gr.Radio(["developer-friendly", "casual"], label="Mode", value="developer-friendly"),
+    ],
+    outputs=[
+        gr.Textbox(label="Bug Type"),
+        gr.Textbox(label="Description"),
+        gr.Textbox(label="Suggestion"),
+    ],
+    title="AI Bug Identifier",
+    description="Paste your code, choose a language and mode, and find bugs instantly!"
 )
 
-if __name__ == "__main__":
-    import uvicorn
-    import nest_asyncio
-    nest_asyncio.apply()
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+app = gr.mount_gradio_app(app, gradio_ui, path="/")
