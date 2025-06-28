@@ -12,7 +12,11 @@ import gradio as gr
 
 app = FastAPI()
 
-# CORS middleware
+from fastapi.responses import FileResponse
+
+@app.get("/manifest.json")
+def manifest():
+    return FileResponse("static/manifest.json")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
