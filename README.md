@@ -1,92 +1,83 @@
-# bug_identifier_api
+# Bug Identifier
 
-A Python backend for automated bug identification and code analysis using AI (Gemini LLM). This module powers the **AI Bug Identifier** Streamlit application, providing logic for analyzing user-submitted code, detecting bugs, and returning actionable suggestions in real-time.
+**Bug Identifier** is an AI-powered tool for automatically detecting bugs in your code snippets. Built using Python and Streamlit, it leverages Gemini LLM for instant bug analysis and actionable suggestions for Python, Java, and C code.
 
 ---
 
 ## Features
 
-- **Multi-Language Support:** Analyze Python, Java, and C code for common bug types.
-- **AI-Powered Bug Detection:** Uses Google Gemini LLM for advanced bug identification and suggestions.
-- **Syntax Checking:** Performs static syntax checks before AI analysis.
-- **Flexible Response Modes:** Supports developer-friendly and casual output tones.
-- **Sample Cases:** Includes sample buggy code snippets and explanations for demonstration/testing.
+- **AI-driven bug detection:** Uses Gemini LLM to classify bugs (logic, runtime, edge-case, off-by-one, syntax) and suggest fixes.
+- **Multi-language support:** Python, Java, and C code.
+- **Local syntax checking:** Fast static validation before AI analysis.
+- **Flexible tone:** Developer-friendly or casual output.
+- **Sample cases:** Built-in buggy code examples.
+- **Streamlit web app:** Intuitive, interactive UI.
 
 ---
 
-## File Structure
+## Directory Structure
 
 ```
-bug_identifier_api/
-├── __init__.py
-├── analyzer.py         # Core logic for syntax check & LLM analysis
-├── llm_call.py         # Abstraction to call Gemini (or other LLMs)
-├── test_cases.py       # SampleCase dataclass and example buggy code snippets
-├── requirements.txt    # Python dependencies
-└── ...                 # Other utility files or modules
+bug-identifier/
+├── bug_identifier_api/
+│   ├── analyzer.py
+│   ├── llm_call.py
+│   ├── main.py          # Main Streamlit app (entry point)
+│   ├── test_cases.py
+│   ├── static/
+│   ├── __pycache__/
+│   └── requirements.txt
+├── README.md
+└── ...
 ```
+
+---
+
+## Getting Started
+
+1. **Install dependencies**
+    ```bash
+    pip install -r bug_identifier_api/requirements.txt
+    ```
+
+2. **Run the Streamlit app**
+    ```bash
+    streamlit run bug_identifier_api/main.py
+    ```
 
 ---
 
 ## Usage
 
-This module is designed to be used by the [Streamlit UI](../streamlit_app/README.md) (see the main repo).
-
-**Example integration:**
-```python
-from bug_identifier_api.analyzer import run_analysis
-
-bug_type, desc, sugg = run_analysis(language, code, mode)
-```
+- Paste your code in the editor.
+- Select the language (Python, Java, or C).
+- Choose the tone ("developer-friendly" or "casual").
+- Click "Find Bug" for instant feedback and suggestions.
+- Try "Sample Cases" for quick demos.
 
 ---
 
 ## Example
 
 **Input:**
-```json
-{
-  "language": "python",
-  "code": "def foo():\n  return 1/0"
-}
+```python
+def foo():
+    return 1/0
 ```
+
 **Output:**
-```json
-{
-  "bug_type": "runtime",
-  "description": "Division by zero error.",
-  "suggestion": "Check for zero before dividing."
-}
-```
+- **Bug Type:** runtime
+- **Description:** Division by zero error.
+- **Suggestion:** Check for zero before dividing.
 
 ---
 
 ## Configuration
 
 - **Supported Languages:** Python, Java, C
-- **Modes:** Developer-friendly, Casual (adjusts response tone)
-- **LLM Service:** Gemini (see `llm_call.py` for configuration)
-
----
-
-## Dependencies
-
-- Python 3.8+
-- [pycparser](https://pypi.org/project/pycparser/)
-- [streamlit](https://streamlit.io/)
-- Your Gemini LLM API credentials/config
-
-Install with:
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## Extending
-
-- Add support for more languages by extending `analyzer.py`.
-- Swap out the language model or prompt in `llm_call.py`.
+- **Modes:** Developer-friendly, Casual (response tone)
+- **LLM Service:** Gemini (API key required, see `llm_call.py`)
+- **Extending:** Add new languages or bug types in `analyzer.py` and `test_cases.py`.
 
 ---
 
@@ -96,4 +87,4 @@ MIT License
 
 ---
 
-**Empower your code reviews with instant, AI-driven bug detection!**
+**Instant, AI-powered bug detection for your code.**
