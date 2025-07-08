@@ -94,8 +94,7 @@ async def analyze_code_with_gemini(language: str, code: str, mode: str = "develo
 def run_analysis(language, code, mode):
     if not code or not code.strip():
         return "No code provided.", "", ""
-    if len(code.splitlines()) > 30:
-        return "Code must be 30 lines or fewer.", "", ""
+    
     is_valid, syntax_msg = syntax_check(language, code)
     if not is_valid:
         return f"Syntax Error: {syntax_msg}", "", "Please fix the syntax error before further analysis."
